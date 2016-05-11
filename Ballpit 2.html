@@ -1,0 +1,229 @@
+<script src=CT_Modeler.js></script>
+
+<body bgcolor=black>
+<center>
+<canvas id='canvas1' width="100" height="100"></canvas>
+</center>
+</body>
+<style>
+</style>
+
+<script>
+
+   canvas1.width  = window.innerWidth;
+   canvas1.height = window.innerHeight;
+
+   function Vector3(x, y, z) {
+      this.x = 0;
+      this.y = 0;
+      this.z = 0;
+      this.set(x, y, z);
+   }
+   Vector3.prototype = {
+      set : function(x, y, z) {
+         if (x !== undefined) this.x = x;
+         if (y !== undefined) this.y = y;
+         if (z !== undefined) this.z = z;
+      },
+   }
+
+   function getTime() { return (new Date()).getTime() / 1000; }
+
+   var scene = new CT.Scene(canvas1);
+   scene.setLight(0, [ 1, 1, 1]);
+   scene.setLight(1, [-1,-1,-1], [.1, .05, 0]);
+
+   var root = new CT.Node();
+   scene.add(root);
+
+   var n = 900;
+   var shapes = [];
+   var marbles = [];
+
+
+   var marble;
+   for (var i = 0; i < n; i++){
+      marble = {
+         pos : new Vector3(Math.random()*2-1,Math.random()*2-1,Math.random()*2-1),
+         dir : new Vector3(Math.random()*2-1,Math.random()*2-1,Math.random()*2-1),
+         dt : 0.1,
+         dv : 0.91,
+         dy : 0.004,
+      };
+
+      var shape = root.addChild(new CT.Sphere());
+
+      marbles.push(marble);
+      shapes.push(shape);
+   }
+
+   var field = root.addChild(new CT.Sphere());
+   field.setColor(0.6,0.6,0.6,4);
+
+
+   var cx, cy, cz;
+
+   var startTime = getTime();
+   (function update() {
+      CT.time = getTime() - startTime;
+
+      var xp, yp, zp, dc;
+      var xn, yn, zn, dn;
+      var d, dt, dirl, dirx,diry,dirz, r, dx, dy, dz, c, r;
+      var ox,oy;
+
+      ox = cx;
+      oy = cy;
+
+      cx = ((canvas1.cursor.x - canvas1.width)/(canvas1.width/2))+1;
+      cy = ((canvas1.cursor.y - canvas1.height)/(canvas1.height/2))+1;
+      cy *= canvas1.height/canvas1.width;
+      console.log(cy);
+      cz = canvas1.cursor.z; // 0 if not clicked //1 if clicked.
+
+      // console.log(cy);
+
+      field.identity().translate(cx, -cy, 0).scale(canvas1.height/canvas1.width).scale(0.3);
+
+      var marble, shape;
+      for (var i = 0; i < n; i++){
+         marble = marbles[i];
+         shape = shapes[i];
+
+         d = 0.03;//radius?
+
+         if (marble.pos.x >= canvas1.height/canvas1.width){
+               if (marble.dir.x > 0){
+                  marble.dir.x *= -1;
+               }
+         }
+         if (marble.pos.y >= canvas1.height/canvas1.width){
+               if (marble.dir.y > 0){
+                  marble.dir.y *= -1;
+               }
+         }
+         if (marble.pos.z >= 0.3*(canvas1.height/canvas1.width)){
+               if (marble.dir.z > 0){
+                  marble.dir.z *= -1;
+               }
+         }
+
+         if (marble.pos.x <= -1*(canvas1.height/canvas1.width)){
+               if (marble.dir.x < 0){
+                  marble.dir.x *= -1;
+               }
+         }
+         if (marble.pos.y <= -1*(canvas1.height/canvas1.width)){
+               if (marble.dir.y < 0){
+                  marble.dir.y *= -1;
+               }
+         }
+         if (marble.pos.z <= -0.3*(canvas1.height/canvas1.width)){
+               if (marble.dir.z < 0){
+                  marble.dir.z *= -1;
+               }
+         }
+
+         marble.dt *= marble.dv;// / Math.min(0.05, dn/1000.0);
+
+         dt = marble.dt;
+
+         xp = Math.pow(marble.pos.x,2.0);
+         yp = Math.pow(marble.pos.y,2.0);
+         zp = Math.pow(marble.pos.z,2.0);
+         dn = Math.sqrt(xp+yp+zp);
+
+         r = 0.3*(canvas1.height/canvas1.width);//field radius?
+         if (dn > r+d){
+               
+            if (marble.dir.x <= 0){
+               marble.pos.x +=  marble.dy;
+            }else{
+               marble.pos.x -= marble.dy;
+            }
+
+            if (marble.dir.y <= 0){
+               marble.pos.y +=  marble.dy;
+            }else{
+               marble.pos.y -= marble.dy;
+            }
+
+            if (marble.dir.z <= 0){
+               marble.pos.z +=  marble.dy;
+            }else{
+               marble.pos.z -= marble.dy;
+            }
+
+         }
+
+         xp = Math.pow((marble.dir.x),2.0);
+         yp = Math.pow((marble.dir.y),2.0);
+         zp = Math.pow((marble.dir.z),2.0);
+
+         dirl = Math.sqrt(xp+yp+zp);
+
+         dirx = marble.dir.x/dirl;
+         diry = marble.dir.y/dirl;
+         dirz = marble.dir.z/dirl;
+
+         dx = dirx*dt;
+         dy = diry*dt;
+         dz = dirz*dt;
+
+         marble.dir.x = dx;
+         marble.dir.y = dy;
+         marble.dir.z = dz;
+
+            marble.pos.x += dx;
+            marble.pos.y += dy;
+            marble.pos.z += dz;
+            
+         // console.log(marble.pos.x);
+
+         xp = Math.pow(marble.pos.x - cx,2.0);
+         yp = Math.pow(marble.pos.y + cy,2.0);
+         zp = Math.pow(marble.pos.z,2.0);
+         dn = Math.sqrt(xp+yp+zp);
+
+         if (dn < r+d){
+            // shape.setColor(1,0,0);
+
+            if (dn < marble.dc){
+               shape.setColor(0,256,1);
+               marble.dir.x = marble.pos.x - cx;
+               marble.dir.y = marble.pos.y + cy;
+               marble.dir.z = marble.pos.z;
+               marble.dt = Math.min(0.2,marble.dt + Math.min(1.0,(Math.sqrt(Math.pow(ox-cx,2)+Math.pow(oy-cy,2))*0.1)));
+            }
+               // dy += marble.dy;
+         
+         }
+
+         if (cz == 1 && dn){
+            marble.dir.x = cx - marble.pos.x;
+            marble.dir.y = - cy - marble.pos.y;
+            marble.dir.z = -marble.pos.z;
+            marble.dt = Math.min(0.2,(1.0/marble.dt)/10.0);
+         }
+
+         c = marble.pos.z+0.3*(canvas1.height/canvas1.width);
+         r = Math.max(0.0001,(1.001-marble.dt/0.2));
+         shape.setMetal(c*(r/1.5),c*(2.0/r),c*(2.0/r));
+
+
+
+         marble.dc = dn;
+
+
+         marbles[i] = marble;
+
+         shape.identity().translate(marble.pos.x, marble.pos.y, marble.pos.z).scale(canvas1.height/canvas1.width).scale(0.03); 
+
+         shape.draw();
+      }
+
+      // root.draw();
+      setTimeout(update, 1000 / 60);
+   })();
+</script>
+
